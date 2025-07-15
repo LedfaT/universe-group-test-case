@@ -8,8 +8,8 @@ export class AppService implements OnModuleInit {
   async onModuleInit() {
     await this.natsService.connect();
 
-    this.natsService.subscribe('event.facebook', (data) => {
-      console.log('[NATS message]');
+    this.natsService.subscribe('event.tiktok', (data) => {
+      console.log('[NATS message, tiktok]', data);
     });
   }
 }

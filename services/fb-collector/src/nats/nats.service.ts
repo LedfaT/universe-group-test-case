@@ -1,26 +1,31 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { connect, NatsConnection, StringCodec } from 'nats';
-import { Event } from 'types/eventTypes';
 
 @Injectable()
-export class NatsService implements OnModuleInit, OnModuleDestroy {
+export class NatsService {
   private nc: NatsConnection;
   private parser = StringCodec();
 
-  async onModuleInit() {
+  async connect() {
     this.nc = await connect({ servers: 'nats://nats:4222' });
+    console.log('[NATS] Connected');
   }
 
-  async onModuleDestroy() {
+  async close() {
     if (this.nc) {
       await this.nc.close();
     }
   }
 
-  publish(subject: string, message: Event) {
+  subscribe(subject: string, callback: (msg: any) => void) {
     if (!this.nc) {
       throw new Error('NATS connection not initialized');
     }
-    this.nc.publish(subject, this.parser.encode(JSON.stringify(message)));
+    const sub = this.nc.subscribe(subject);
+    (async () => {
+      for await (const msg of sub) {
+        callback(this.parser.decode(msg.data));
+      }
+    })();
   }
 }
