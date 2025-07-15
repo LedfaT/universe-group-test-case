@@ -1,8 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { NatsService } from './nats/nats.service';
 
 @Injectable()
-export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+export class AppService implements OnModuleInit {
+  constructor(private readonly natsService: NatsService) {}
+
+  async onModuleInit() {
+    await this.natsService.connect();
+
+    this.natsService.subscribe('event.facebook', (data) => {
+      console.log('[NATS message]');
+    });
   }
 }
