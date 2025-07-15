@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:10.21
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: 'root'
+      POSTGRES_DB: universe-group
+      POSTGRES_USER: dev
+      POSTGRES_PORT: 5432
+    volumes:
+      - database_data:/var/lib/postgresql/data
+
+  nats:
+    image: nats
+    container_name: nats
+    restart: always
+    command: -js -c /etc/nats/nats.conf
+    ports:
+      - '4222:4222'
+    volums:
+      - ./config/nats/nats.conf:/etc/nats/nats.conf
+
+  gateway:
+    build:
+      context: .
+      dockerfile: ./services/gateway/Dockerfile.dev
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - nats
+    volumes:
+      - /app
+      - /app/node_modules
+
+  ttk-collector:
+    build:
+      context: .
+      dockerfile: ./services/ttk-collector/Dockerfile.dev
+    ports:
+      - '3001:3001'
+    depends_on:
+      - gateway
+    volumes:
+      - /app
+      - /app/node_modules
+
+  fb-collector:
+    build:
+      context: .
+      dockerfile: ./services/fb-collector/Dockerfile.dev
+    ports:
+      - '3002:3002'
+    depends_on:
+      - gateway
+    volumes:
+      - /app
+      - /app/node_modules
+
+  reporter:
+    build:
+      context: .
+      dockerfile: ./services/reporter/Dockerfile.dev
+    ports:
+      - '3003:3003'
+    depends_on:
+      - postgres
+    volumes:
+      - /app
+      - /app/node_modules
