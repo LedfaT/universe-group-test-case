@@ -1,4 +1,13 @@
+version: '3.8'
+
 services:
+  publisher:
+    image: andriiuni/events
+    env_file:
+      - .env
+    ports:
+      - '8080:8080'
+
   postgres:
     image: postgres:10.21
     ports:
@@ -9,7 +18,7 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PORT: 5432
     volumes:
-      - database_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
 
   nats:
     image: nats
@@ -18,7 +27,7 @@ services:
     command: -js -c /etc/nats/nats.conf
     ports:
       - '4222:4222'
-    volums:
+    volumes:
       - ./config/nats/nats.conf:/etc/nats/nats.conf
 
   gateway:
@@ -31,8 +40,8 @@ services:
       - postgres
       - nats
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/gateway:/app
+      - ./node_modules:/app/node_modules
 
   ttk-collector:
     build:
@@ -43,8 +52,8 @@ services:
     depends_on:
       - gateway
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/ttk-collector:/app
+      - ./node_modules:/app/node_modules
 
   fb-collector:
     build:
@@ -55,8 +64,8 @@ services:
     depends_on:
       - gateway
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/fb-collector:/app
+      - ./node_modules:/app/node_modules
 
   reporter:
     build:
@@ -67,5 +76,9 @@ services:
     depends_on:
       - postgres
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/reporter:/app
+      - ./node_modules:/app/node_modules
+
+volumes:
+  postgres-data:
+    driver: local
