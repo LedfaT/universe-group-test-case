@@ -13,6 +13,7 @@ services:
 
   postgres:
     image: postgres:10.21
+    container_name: postgres
     ports:
       - 5432:5432
     environment:
@@ -22,6 +23,18 @@ services:
       POSTGRES_PORT: 5432
     volumes:
       - postgres-data:/var/lib/postgresql/data
+
+  db-migrator:
+    build:
+      context: .
+      dockerfile: ./services/ttk-collector/Dockerfile.dev
+    command: npx prisma migrate deploy
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://dev:root@postgres:5432/universe-group
+    volumes:
+      - ./prisma:/app/prisma
 
   nats:
     image: nats
@@ -52,11 +65,14 @@ services:
       dockerfile: ./services/ttk-collector/Dockerfile.dev
     ports:
       - '3001:3001'
+    env_file:
+      - .env
     depends_on:
       - gateway
     volumes:
       - ./services/ttk-collector:/app
       - ./services/ttk-collector/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
 
   fb-collector:
     build:
@@ -64,11 +80,14 @@ services:
       dockerfile: ./services/fb-collector/Dockerfile.dev
     ports:
       - '3002:3002'
+    env_file:
+      - .env
     depends_on:
       - gateway
     volumes:
       - ./services/fb-collector:/app
       - ./services/fb-collector/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
 
   reporter:
     build:
@@ -76,11 +95,14 @@ services:
       dockerfile: ./services/reporter/Dockerfile.dev
     ports:
       - '3003:3003'
+    env_file:
+      - .env
     depends_on:
       - postgres
     volumes:
       - ./services/reporter:/app
       - ./services/reporter/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
 
 volumes:
   postgres-data:
