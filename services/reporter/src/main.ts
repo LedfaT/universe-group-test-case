@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { ReportModule } from './report.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(ReportModule);
   await app.listen(process.env.PORT ?? 3003);
-  console.log('ttk-collector started at 3003');
+  console.log('reporter started at 3003');
 }
 bootstrap();

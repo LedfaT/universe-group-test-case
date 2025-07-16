@@ -1,0 +1,163 @@
+// src/reports/reports.service.ts
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from './prisma/prisma.service';
+
+@Injectable()
+export class ReportService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getFilteredEvents(filters: {
+    from?: string;
+    to?: string;
+    source?: 'facebook' | 'tiktok';
+    funnelStage?: 'top' | 'bottom';
+    eventType?: string;
+  }) {
+    const { from, to, source, funnelStage, eventType } = filters;
+
+    const timestamp = {
+      ...(from && { gte: new Date(from) }),
+      ...(to && { lte: new Date(to) }),
+    };
+
+    return await this.prisma.event.findMany({
+      where: {
+        timestamp,
+        source: source ?? undefined,
+        funnelStage: funnelStage ?? undefined,
+        eventType: eventType ?? undefined,
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+    });
+  }
+
+  async getRevenue(filters: {
+    from?: string;
+    to?: string;
+    source?: 'facebook' | 'tiktok';
+    campaignId?: string;
+  }) {
+    if (!filters.source) {
+      throw new Error('Source is required');
+    }
+
+    const { from, to, source, campaignId } = filters;
+
+    const timestamp = {
+      ...(from && { gte: new Date(from) }),
+      ...(to && { lte: new Date(to) }),
+    };
+    const where: any = {
+      source: source,
+      eventType: source === 'facebook' ? 'checkout.complete' : 'purchase',
+      timestamp,
+    };
+
+    if (campaignId && source === 'facebook') {
+      where.fbEngagementBottom = { campaignId: campaignId };
+    }
+
+    const events = await this.prisma.event.findMany({
+      where,
+      include: {
+        fbEngagementBottom: true,
+        ttEngagementBottom: true,
+      },
+    });
+
+    const totalRevenue = events.reduce((sum, ev) => {
+      let amount = 0;
+      if (ev.fbEngagementBottom?.purchaseAmount) {
+        amount += parseFloat(ev.fbEngagementBottom.purchaseAmount);
+      }
+      if (ev.ttEngagementBottom?.purchaseAmount) {
+        amount += parseFloat(ev.ttEngagementBottom.purchaseAmount);
+      }
+      return sum + amount;
+    }, 0);
+
+    return { totalRevenue };
+  }
+
+  async getDemographics(filters: {
+    from?: string;
+    to?: string;
+    source: 'facebook' | 'tiktok';
+  }) {
+    const { from, to, source } = filters;
+
+    const timestamp = {
+      ...(from && { gte: new Date(from) }),
+      ...(to && { lte: new Date(to) }),
+    };
+
+    if (source === 'facebook') {
+      const users = await this.prisma.facebookUser.findMany({
+        where: {
+          events: {
+            some: {
+              timestamp,
+              source: 'facebook',
+            },
+          },
+        },
+        select: {
+          age: true,
+          gender: true,
+          country: true,
+          city: true,
+        },
+      });
+
+      const summary = {
+        count: users.length,
+        averageAge:
+          users.reduce((sum, u) => sum + u.age, 0) / (users.length || 1),
+        genderCounts: users.reduce(
+          (acc, u) => {
+            acc[u.gender] = (acc[u.gender] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+        locations: users.reduce(
+          (acc, u) => {
+            const locKey = `${u.country} - ${u.city}`;
+            acc[locKey] = (acc[locKey] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+      };
+
+      return summary;
+    } else if (source === 'tiktok') {
+      const users = await this.prisma.tiktokUser.findMany({
+        where: {
+          events: {
+            some: {
+              timestamp,
+              source: 'tiktok',
+            },
+          },
+        },
+        select: {
+          followers: true,
+        },
+      });
+
+      const summary = {
+        count: users.length,
+        averageFollowers:
+          users.reduce((sum, u) => sum + u.followers, 0) / (users.length || 1),
+        totalFollowers: users.reduce((sum, u) => sum + u.followers, 0),
+      };
+
+      return summary;
+    }
+
+    throw new Error('Unsupported source');
+  }
+}
