@@ -45,6 +45,7 @@ services:
       - '4222:4222'
     volumes:
       - ./config/nats/nats.conf:/etc/nats/nats.conf
+      - nats-data:/data
 
   gateway:
     build:
@@ -143,4 +144,6 @@ volumes:
   grafana-data:
     driver: local
   prometheus-data:
+    driver: local
+  nats-data:
     driver: local

@@ -1,13 +1,25 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { connect, NatsConnection, StringCodec } from 'nats';
+import { Injectable } from '@nestjs/common';
+import {
+  connect,
+  NatsConnection,
+  StringCodec,
+  JetStreamClient,
+  JetStreamManager,
+  AckPolicy,
+  DeliverPolicy,
+} from 'nats';
 
 @Injectable()
 export class NatsService {
   private nc: NatsConnection;
+  private js: JetStreamClient;
+  private jsm: JetStreamManager;
   private parser = StringCodec();
 
   async connect() {
     this.nc = await connect({ servers: 'nats://nats:4222' });
+    this.js = this.nc.jetstream();
+    this.jsm = await this.nc.jetstreamManager();
     console.log('[NATS] Connected');
   }
 
@@ -17,14 +29,40 @@ export class NatsService {
     }
   }
 
-  subscribe(subject: string, callback: (msg: any) => void) {
-    if (!this.nc) {
-      throw new Error('NATS connection not initialized');
+  async subscribe(
+    stream: string,
+    durable: string,
+    subject: string,
+    callback: (data: any) => Promise<void> | void,
+  ) {
+    try {
+      await this.jsm.consumers.info(stream, durable);
+    } catch (err: any) {
+      if (err.message.includes('consumer not found')) {
+        await this.jsm.consumers.add(stream, {
+          durable_name: durable,
+          ack_policy: AckPolicy.Explicit,
+          deliver_policy: DeliverPolicy.All,
+          filter_subject: subject,
+        });
+        console.log(`[NATS] Created durable consumer: ${durable}`);
+      } else {
+        throw err;
+      }
     }
-    const sub = this.nc.subscribe(subject);
+
+    const consumer = await this.js.consumers.get(stream, durable);
+    const messages = await consumer.consume();
+
     (async () => {
-      for await (const msg of sub) {
-        callback(this.parser.decode(msg.data));
+      for await (const msg of messages) {
+        try {
+          const decoded = this.parser.decode(msg.data);
+          await callback(decoded);
+          msg.ack();
+        } catch (err) {
+          console.error('[NATS] Error handling message:', err);
+        }
       }
     })();
   }
