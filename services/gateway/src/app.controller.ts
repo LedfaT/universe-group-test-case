@@ -12,10 +12,9 @@ export class AppController {
 
   @Post('/events')
   eventHandler(@Body() body: Event[]) {
-    this.metricsService.gatewayAccepted.inc(body.length);
-
-    try {
-      body.forEach((event: Event) => {
+    body.forEach((event: Event) => {
+      this.metricsService.gatewayAccepted.inc();
+      try {
         if (event.source === 'facebook') {
           this.natsService.publish('event.facebook', event);
         }
@@ -23,10 +22,10 @@ export class AppController {
         if (event.source === 'tiktok') {
           this.natsService.publish('event.tiktok', event);
         }
-      });
-      this.metricsService.gatewayProcessed.inc();
-    } catch (e) {
-      this.metricsService.gatewayFailed.inc();
-    }
+        this.metricsService.gatewayProcessed.inc();
+      } catch (e) {
+        this.metricsService.gatewayFailed.inc();
+      }
+    });
   }
 }

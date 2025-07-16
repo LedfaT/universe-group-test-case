@@ -14,7 +14,7 @@
       "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 },
       "targets": [
         {
-          "expr": "gateway_events_accepted_total",
+          "expr": "sum(gateway_events_accepted_total)",
           "refId": "A"
         }
       ]
@@ -25,7 +25,7 @@
       "gridPos": { "x": 8, "y": 0, "w": 8, "h": 4 },
       "targets": [
         {
-          "expr": "sum(gateway_events_processed_total)",
+          "expr": "gateway_events_processed_total",
           "refId": "A"
         }
       ]

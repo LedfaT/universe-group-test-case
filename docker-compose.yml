@@ -107,10 +107,11 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
+    user: '65534:65534'
     restart: unless-stopped
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -124,7 +125,7 @@ services:
     image: grafana/grafana
     container_name: grafana
     ports:
-      - '3005:3005'
+      - '3005:3000'
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -141,5 +142,5 @@ volumes:
     driver: local
   grafana-data:
     driver: local
-  prometheus_data:
+  prometheus-data:
     driver: local
