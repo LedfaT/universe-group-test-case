@@ -1,13 +1,14 @@
-import { Controller, Post, Body } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Controller, Post, Get, Res, Body } from '@nestjs/common';
+import { Response } from 'express';
 import { NatsService } from './nats/nats.service';
 import { Event } from 'types/eventTypes';
+import { MetricsService } from './metrics/metrics.service';
 
 @Controller()
 export class AppController {
   constructor(
-    private readonly appService: AppService,
     private readonly natsService: NatsService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   @Post('/events')
@@ -21,5 +22,11 @@ export class AppController {
         this.natsService.publish('event.tiktok', event);
       }
     });
+  }
+
+  @Get()
+  async getMetrics(@Res() res: Response) {
+    res.setHeader('Content-Type', this.metricsService.register.contentType);
+    res.send(await this.metricsService.register.metrics());
   }
 }
