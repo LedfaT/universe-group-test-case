@@ -1,0 +1,39 @@
+{
+  "id": null,
+  "uid": "collectors-dashboard",
+  "title": "Collectors Metrics",
+  "tags": ["collectors", "events"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Aggregated Events Rate (1m) - Accepted, Processed, Failed",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "options": {
+        "stacking": {
+          "mode": "normal"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(gateway_events_accepted_total[1m]))",
+          "legendFormat": "Accepted",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(gateway_events_processed_total[1m]))",
+          "legendFormat": "Processed",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(gateway_events_failed_total[1m]))",
+          "legendFormat": "Failed",
+          "refId": "C"
+        }
+      ]
+    }
+  ]
+}

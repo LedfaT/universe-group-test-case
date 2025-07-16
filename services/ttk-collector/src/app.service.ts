@@ -2,62 +2,72 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
 import { Event, TiktokEvent, TiktokUser } from 'types/eventTypes';
+import { MetricsService } from './metrics/metrics.service';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(
     private readonly natsService: NatsService,
     private readonly prisma: PrismaService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async onModuleInit() {
     await this.natsService.connect();
 
     this.natsService.subscribe('event.tiktok', async (msg: string) => {
-      const eventData: TiktokEvent = JSON.parse(msg);
+      this.metricsService.collectorEventsReceived.inc({ service: 'ttk' });
 
-      const { user, engagement } = eventData.data;
+      try {
+        const eventData: TiktokEvent = JSON.parse(msg);
 
-      const createdUser = await this.prisma.tiktokUser.create({
-        data: {
-          ...user,
-        },
-      });
+        const { user, engagement } = eventData.data;
 
-      let engagementTopId: string | null = null;
-      let engagementBottomId: string | null = null;
-
-      if ('watchTime' in engagement) {
-        const createdEngagement = await this.prisma.tiktokEngagementTop.create({
+        const createdUser = await this.prisma.tiktokUser.create({
           data: {
-            ...engagement,
+            ...user,
           },
         });
-        engagementTopId = createdEngagement.id;
+
+        let engagementTopId: string | null = null;
+        let engagementBottomId: string | null = null;
+
+        if ('watchTime' in engagement) {
+          const createdEngagement =
+            await this.prisma.tiktokEngagementTop.create({
+              data: {
+                ...engagement,
+              },
+            });
+          engagementTopId = createdEngagement.id;
+        }
+
+        if ('actionTime' in engagement) {
+          const createdEngagement =
+            await this.prisma.tiktokEngagementBottom.create({
+              data: {
+                ...engagement,
+              },
+            });
+          engagementBottomId = createdEngagement.id;
+        }
+
+        await this.prisma.event.create({
+          data: {
+            eventId: eventData.eventId,
+            timestamp: eventData.timestamp,
+            source: 'tiktok',
+            funnelStage: eventData.funnelStage,
+            eventType: eventData.eventType,
+
+            tiktokUserId: createdUser.id,
+            ttEngagementTopId: engagementTopId,
+            ttEngagementBottomId: engagementBottomId,
+          },
+        });
+        this.metricsService.collectorEventsProcessed.inc({ service: 'ttk' });
+      } catch (e) {
+        this.metricsService.collectorEventsFailed.inc({ service: 'ttk' });
       }
-
-      if ('actionTime' in engagement) {
-        const createdEngagement =
-          await this.prisma.tiktokEngagementBottom.create({
-            data: {
-              ...engagement,
-            },
-          });
-        engagementBottomId = createdEngagement.id;
-      }
-
-      await this.prisma.event.create({
-        data: {
-          eventId: eventData.eventId,
-          timestamp: eventData.timestamp,
-          source: 'tiktok',
-          funnelStage: eventData.funnelStage,
-          eventType: eventData.eventType,
-
-          tiktokUserId: createdUser.id,
-          ttEngagementTopId: engagementTopId,
-          ttEngagementBottomId: engagementBottomId,
-        },
-      });
     });
   }
 }

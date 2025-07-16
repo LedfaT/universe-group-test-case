@@ -124,12 +124,15 @@ services:
     image: grafana/grafana
     container_name: grafana
     ports:
-      - '3005:3000'
+      - '3005:3005'
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
 

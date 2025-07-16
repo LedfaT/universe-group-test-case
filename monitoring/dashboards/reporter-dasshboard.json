@@ -1,0 +1,24 @@
+{
+  "id": null,
+  "uid": "reporter-dashboard",
+  "title": "Reporter Metrics",
+  "tags": ["reporter", "latency"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Report Latency p95 by Category",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(report_latency_seconds_bucket[1m])) by (le, category))",
+          "legendFormat": "{{category}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

@@ -1,12 +1,7 @@
-import { Controller, Post, Body } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Controller } from '@nestjs/common';
+import { MetricsService } from './metrics/metrics.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Post()
-  eventHandle(@Body() body: any) {
-    console.log(body);
-  }
+  constructor(private readonly metricsService: MetricsService) {}
 }
