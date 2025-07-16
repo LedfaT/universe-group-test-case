@@ -3,7 +3,7 @@ apiVersion: 1
 providers:
   - name: 'universe'
     orgId: 1
-    folder: ''
+    folder: 'Universe'
     type: file
     options:
       path: /etc/grafana/provisioning/dashboards

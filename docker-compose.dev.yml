@@ -1,6 +1,19 @@
+version: '3.8'
+
 services:
+  publisher:
+    restart: always
+    image: andriiuni/events
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+    ports:
+      - '8080:8080'
+
   postgres:
     image: postgres:10.21
+    container_name: postgres
     ports:
       - 5432:5432
     environment:
@@ -9,19 +22,32 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PORT: 5432
     volumes:
-      - database_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+
+  db-migrator:
+    build:
+      context: .
+      dockerfile: ./services/ttk-collector/Dockerfile.dev
+    command: npx prisma migrate deploy
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://dev:root@postgres:5432/universe-group
+    volumes:
+      - ./prisma:/app/prisma
 
   nats:
+    restart: always
     image: nats
     container_name: nats
-    restart: always
     command: -js -c /etc/nats/nats.conf
     ports:
       - '4222:4222'
-    volums:
+    volumes:
       - ./config/nats/nats.conf:/etc/nats/nats.conf
 
   gateway:
+    restart: always
     build:
       context: .
       dockerfile: ./services/gateway/Dockerfile.dev
@@ -31,41 +57,95 @@ services:
       - postgres
       - nats
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/gateway:/app
+      - ./services/gateway/node_modules:/app/node_modules
 
   ttk-collector:
+    restart: always
     build:
       context: .
       dockerfile: ./services/ttk-collector/Dockerfile.dev
     ports:
       - '3001:3001'
+    env_file:
+      - .env
     depends_on:
       - gateway
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/ttk-collector:/app
+      - ./services/ttk-collector/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
 
   fb-collector:
+    restart: always
     build:
       context: .
       dockerfile: ./services/fb-collector/Dockerfile.dev
     ports:
       - '3002:3002'
+    env_file:
+      - .env
     depends_on:
       - gateway
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/fb-collector:/app
+      - ./services/fb-collector/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
 
   reporter:
+    restart: always
     build:
       context: .
       dockerfile: ./services/reporter/Dockerfile.dev
     ports:
       - '3003:3003'
+    env_file:
+      - .env
     depends_on:
       - postgres
     volumes:
-      - /app
-      - /app/node_modules
+      - ./services/reporter:/app
+      - ./services/reporter/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    user: '65534:65534'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - '9090:9090'
+
+  grafana:
+    restart: always
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - '3005:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-data:
+    driver: local
+  grafana-data:
+    driver: local
+  prometheus-data:
+    driver: local

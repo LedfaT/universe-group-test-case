@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  publisher:
+    image: andriiuni/events
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+    ports:
+      - '8080:8080'
+
+  postgres:
+    image: postgres:10.21
+    container_name: postgres
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  db-migrator:
+    build:
+      context: .
+      dockerfile: ./services/ttk-collector/Dockerfile.dev
+    command: npx prisma migrate deploy
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    volumes:
+      - ./prisma:/app/prisma
+
+  nats:
+    restart: unless-stopped
+    image: nats
+    container_name: nats
+    command: -js -c /etc/nats/nats.conf
+    ports:
+      - '4222:4222'
+    volumes:
+      - ./config/nats/nats.conf:/etc/nats/nats.conf
+
+  gateway:
+    restart: unless-stopped
+    build:
+      context: ./services/gateway
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - nats
+
+  ttk-collector:
+    restart: unless-stopped
+    build:
+      context: ./services/ttk-collector
+    ports:
+      - '3001:3001'
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+
+  fb-collector:
+    restart: unless-stopped
+    build:
+      context: ./services/fb-collector
+    ports:
+      - '3002:3002'
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+
+  reporter:
+    restart: unless-stopped
+    build:
+      context: ./services/reporter
+    ports:
+      - '3003:3003'
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+
+  prometheus:
+    restart: unless-stopped
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    user: '65534:65534'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - '9090:9090'
+
+  grafana:
+    restart: unless-stopped
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - '3005:3000'
+    env_file:
+      - .env
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-data:
+    driver: local
+  grafana-data:
+    driver: local
+  prometheus-data:
+    driver: local
