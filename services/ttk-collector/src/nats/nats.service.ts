@@ -9,6 +9,7 @@ import {
   DeliverPolicy,
 } from 'nats';
 import { WinstonLogger } from 'src/winston/winstom.service';
+import { v4 } from 'uuid';
 
 @Injectable()
 export class NatsService {
@@ -63,17 +64,13 @@ export class NatsService {
 
     (async () => {
       for await (const msg of messages) {
+        const correlationId = v4();
         try {
           const decoded = this.parser.decode(msg.data);
-          const correlationId =
-            msg.headers?.get('correlation-id') ?? 'no-correlation-id';
 
           await callback(decoded, correlationId);
           msg.ack();
         } catch (err) {
-          const correlationId =
-            msg.headers?.get('correlation-id') ?? 'no-correlation-id';
-
           this.logger.error({
             level: 'error',
             correlationId: correlationId,

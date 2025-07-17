@@ -11,9 +11,7 @@ export class WinstonLogger implements LoggerService {
       level: 'info',
       format: winston.format.combine(
         winston.format.timestamp(),
-        winston.format.printf(({ level, message, timestamp }) => {
-          return `${timestamp} [${level.toUpperCase()}]: ${message}`;
-        }),
+        winston.format.json(),
       ),
       transports: [new winston.transports.Console()],
     });
