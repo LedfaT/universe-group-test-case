@@ -1,7 +1,8 @@
 // src/logger/winston.logger.ts
-import { LoggerService } from '@nestjs/common';
+import { LoggerService, Injectable } from '@nestjs/common';
 import * as winston from 'winston';
 
+@Injectable()
 export class WinstonLogger implements LoggerService {
   private logger: winston.Logger;
 
@@ -10,23 +11,21 @@ export class WinstonLogger implements LoggerService {
       level: 'info',
       format: winston.format.combine(
         winston.format.timestamp(),
-        winston.format.printf(({ level, message, timestamp }) => {
-          return `${timestamp} [${level.toUpperCase()}]: ${message}`;
-        }),
+        winston.format.json(),
       ),
       transports: [new winston.transports.Console()],
     });
   }
 
-  log(message: string) {
+  log(message: string | object) {
     this.logger.info(message);
   }
 
-  error(message: string, trace?: string) {
+  error(message: string | object, trace?: string) {
     this.logger.error(`${message} - Trace: ${trace}`);
   }
 
-  warn(message: string) {
+  warn(message: string | object) {
     this.logger.warn(message);
   }
 
