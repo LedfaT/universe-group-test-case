@@ -3,12 +3,14 @@ import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
 import { TiktokEvent } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
+import { WinstonLogger } from './winston/winstom.service';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(
     private readonly natsService: NatsService,
     private readonly prisma: PrismaService,
     private readonly metricsService: MetricsService,
+    private readonly logger: WinstonLogger,
   ) {}
 
   async onModuleInit() {
@@ -18,7 +20,7 @@ export class AppService implements OnModuleInit {
       'EVENTS',
       'ttk-consumer',
       'event.tiktok',
-      async (msg: string) => {
+      async (msg: string, correlation: string) => {
         this.metricsService.collectorEventsReceived.inc({ service: 'ttk' });
 
         try {
@@ -69,8 +71,20 @@ export class AppService implements OnModuleInit {
             },
           });
           this.metricsService.collectorEventsProcessed.inc({ service: 'ttk' });
+
+          this.logger.log({
+            level: 'info',
+            correlationId: correlation,
+            message: `Processed event for Tiktok user: ${createdUser.id}`,
+          });
         } catch (e) {
           this.metricsService.collectorEventsFailed.inc({ service: 'ttk' });
+          this.logger.error({
+            level: 'error',
+            correlationId: correlation,
+            message: `Failed to process Tiktok event`,
+            err: e,
+          });
         }
       },
     );

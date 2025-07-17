@@ -8,6 +8,7 @@ import {
   AckPolicy,
   DeliverPolicy,
 } from 'nats';
+import { WinstonLogger } from 'src/winston/winstom.service';
 
 @Injectable()
 export class NatsService {
@@ -15,6 +16,8 @@ export class NatsService {
   private js: JetStreamClient;
   private jsm: JetStreamManager;
   private parser = StringCodec();
+
+  constructor(private readonly logger: WinstonLogger) {}
 
   async connect() {
     this.nc = await connect({ servers: 'nats://nats:4222' });
@@ -33,7 +36,7 @@ export class NatsService {
     stream: string,
     durable: string,
     subject: string,
-    callback: (data: any) => Promise<void> | void,
+    callback: (data: string, correlation: string) => Promise<void> | void,
   ) {
     try {
       await this.jsm.consumers.info(stream, durable);
@@ -46,7 +49,10 @@ export class NatsService {
           filter_subject: subject,
           deliver_group: 'ttk-collectors-group',
         });
-        console.log(`[NATS] Created durable consumer: ${durable}`);
+        this.logger.log({
+          level: 'info',
+          message: `Created durable consumer: ${durable}`,
+        });
       } else {
         throw err;
       }
@@ -61,14 +67,19 @@ export class NatsService {
           const decoded = this.parser.decode(msg.data);
           const correlationId =
             msg.headers?.get('correlation-id') ?? 'no-correlation-id';
-          console.log(
-            `[NATS] Received message with correlation ID: ${correlationId}`,
-          );
 
-          await callback(decoded);
+          await callback(decoded, correlationId);
           msg.ack();
         } catch (err) {
-          console.error('[NATS] Error handling message:', err);
+          const correlationId =
+            msg.headers?.get('correlation-id') ?? 'no-correlation-id';
+
+          this.logger.error({
+            level: 'error',
+            correlationId: correlationId,
+            message: `Error sending event for: ${durable}`,
+            err,
+          });
         }
       }
     })();

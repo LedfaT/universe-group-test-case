@@ -1,7 +1,8 @@
 // src/logger/winston.logger.ts
-import { LoggerService } from '@nestjs/common';
+import { LoggerService, Injectable } from '@nestjs/common';
 import * as winston from 'winston';
 
+@Injectable()
 export class WinstonLogger implements LoggerService {
   private logger: winston.Logger;
 
@@ -14,28 +15,19 @@ export class WinstonLogger implements LoggerService {
           return `${timestamp} [${level.toUpperCase()}]: ${message}`;
         }),
       ),
-      transports: [
-        new winston.transports.Console(),
-        // new winston.transports.File({ filename: 'logs/app.log' }),
-        // Можно добавить ротацию, например так:
-        // new winston.transports.DailyRotateFile({
-        //   filename: 'logs/%DATE%-app.log',
-        //   datePattern: 'YYYY-MM-DD',
-        //   maxFiles: '14d',
-        // }),
-      ],
+      transports: [new winston.transports.Console()],
     });
   }
 
-  log(message: string) {
+  log(message: string | object) {
     this.logger.info(message);
   }
 
-  error(message: string, trace?: string) {
+  error(message: string | object, trace?: string) {
     this.logger.error(`${message} - Trace: ${trace}`);
   }
 
-  warn(message: string) {
+  warn(message: string | object) {
     this.logger.warn(message);
   }
 
