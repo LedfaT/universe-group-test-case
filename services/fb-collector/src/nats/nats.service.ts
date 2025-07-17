@@ -8,6 +8,8 @@ import {
   AckPolicy,
   DeliverPolicy,
 } from 'nats';
+import { WinstonLogger } from 'src/winston/winstom.service';
+import { v4 } from 'uuid';
 
 @Injectable()
 export class NatsService {
@@ -15,6 +17,8 @@ export class NatsService {
   private js: JetStreamClient;
   private jsm: JetStreamManager;
   private parser = StringCodec();
+
+  constructor(private readonly logger: WinstonLogger) {}
 
   async connect() {
     this.nc = await connect({ servers: 'nats://nats:4222' });
@@ -33,7 +37,7 @@ export class NatsService {
     stream: string,
     durable: string,
     subject: string,
-    callback: (data: any) => Promise<void> | void,
+    callback: (data: string, correlation: string) => Promise<void> | void,
   ) {
     try {
       await this.jsm.consumers.info(stream, durable);
@@ -57,12 +61,19 @@ export class NatsService {
 
     (async () => {
       for await (const msg of messages) {
+        const correlationId = v4();
+
         try {
           const decoded = this.parser.decode(msg.data);
-          await callback(decoded);
+          await callback(decoded, correlationId);
           msg.ack();
         } catch (err) {
-          console.error('[NATS] Error handling message:', err);
+          this.logger.error({
+            level: 'error',
+            correlationId: correlationId,
+            message: `Error sending event for: ${durable}`,
+            err,
+          });
         }
       }
     })();

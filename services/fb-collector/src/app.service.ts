@@ -3,12 +3,14 @@ import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
 import { Event, FacebookEvent } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
+import { WinstonLogger } from './winston/winstom.service';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(
     private readonly natsService: NatsService,
     private readonly prisma: PrismaService,
     private readonly metricsService: MetricsService,
+    private readonly logger: WinstonLogger,
   ) {}
 
   async onModuleInit() {
@@ -18,7 +20,7 @@ export class AppService implements OnModuleInit {
       'EVENTS',
       'fb-consumer',
       'event.facebook',
-      async (msg: string) => {
+      async (msg: string, correlation: string) => {
         this.metricsService.collectorEventsReceived.inc({ service: 'fb' });
 
         try {
@@ -89,8 +91,19 @@ export class AppService implements OnModuleInit {
           });
 
           this.metricsService.collectorEventsProcessed.inc({ service: 'fb' });
+          this.logger.log({
+            level: 'info',
+            correlationId: correlation,
+            message: `Processed Facebook event: ${eventData.eventId}`,
+          });
         } catch (e) {
           this.metricsService.collectorEventsFailed.inc({ service: 'fb' });
+          this.logger.error({
+            level: 'error',
+            correlationId: correlation,
+            message: `Failed to process Facebook event: ${e.message}`,
+            error: e,
+          });
         }
       },
     );
