@@ -1,7 +1,6 @@
-import { Controller } from '@nestjs/common';
-import { MetricsService } from './metrics/metrics.service';
+import { Controller, Get } from '@nestjs/common';
 
 @Controller()
 export class AppController {
-  constructor(private readonly metricsService: MetricsService) {}
+  constructor() {}
 }

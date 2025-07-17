@@ -30,6 +30,10 @@ export class NatsService {
     });
   }
 
+  isConnected(): boolean {
+    return this.nc?.isClosed() === false;
+  }
+
   async close() {
     if (this.nc) {
       await this.nc.close();
