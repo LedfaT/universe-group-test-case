@@ -4,6 +4,7 @@ import { PrismaService } from './prisma/prisma.service';
 import { TiktokEvent } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
 import { WinstonLogger } from './winston/winston.service';
+import { EventSchema } from 'validation/eventSchema';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(
@@ -25,6 +26,18 @@ export class AppService implements OnModuleInit {
 
         try {
           const eventData: TiktokEvent = JSON.parse(msg);
+
+          const parsed = EventSchema.safeParse(eventData);
+          if (!parsed.success) {
+            this.metricsService.collectorEventsFailed.inc({ service: 'ttk' });
+            this.logger.error({
+              level: 'error',
+              correlationId: correlation,
+              message: `Invalid event data received for Tiktok event: ${eventData.eventId}`,
+              error: parsed.error,
+            });
+            return;
+          }
 
           const { user, engagement } = eventData.data;
 
