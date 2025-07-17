@@ -3,6 +3,7 @@ import { NatsService } from './nats/nats.service';
 import { Event } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
 import { WinstonLogger } from './winston/winstom.service';
+import { hostname } from 'os';
 
 @Controller()
 export class AppController {
@@ -14,7 +15,12 @@ export class AppController {
 
   @Post('/events')
   eventHandler(@Body() body: Event[]) {
-    console.log('Gateway received events:');
+    const instanceId = hostname();
+    this.logger.log({
+      level: 'info',
+      message: `Request handled by gateway instance: ${instanceId}`,
+    });
+
     body.forEach((event: Event) => {
       this.metricsService.gatewayAccepted.inc();
       try {

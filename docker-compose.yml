@@ -11,6 +11,18 @@ services:
     ports:
       - '8080:8080'
 
+  nginx:
+    restart: always
+    image: nginx:latest
+    container_name: nginx
+    expose:
+      - '80'
+    depends_on:
+      - gateway
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf
+
   postgres:
     image: postgres:10.21
     container_name: postgres
@@ -56,6 +68,9 @@ services:
     depends_on:
       - postgres
       - nats
+    deploy:
+      replicas: 3
+
     volumes:
       - ./services/gateway:/app
       - ./services/gateway/node_modules:/app/node_modules
@@ -70,6 +85,8 @@ services:
       - .env
     depends_on:
       - gateway
+    deploy:
+      replicas: 3
     volumes:
       - ./services/ttk-collector:/app
       - ./services/ttk-collector/node_modules:/app/node_modules
@@ -85,6 +102,8 @@ services:
       - .env
     depends_on:
       - gateway
+    deploy:
+      replicas: 3
     volumes:
       - ./services/fb-collector:/app
       - ./services/fb-collector/node_modules:/app/node_modules
