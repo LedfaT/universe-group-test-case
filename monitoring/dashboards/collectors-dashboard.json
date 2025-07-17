@@ -19,18 +19,18 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(gateway_events_accepted_total[1m]))",
-          "legendFormat": "Accepted",
+          "expr": "sum by (service) (rate(collector_events_received_total[1m]))",
+          "legendFormat": "{{service}} Accepted",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(gateway_events_processed_total[1m]))",
-          "legendFormat": "Processed",
+          "expr": "sum by (service) (rate(collector_events_processed_total[1m]))",
+          "legendFormat": "{{service}} Processed",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(gateway_events_failed_total[1m]))",
-          "legendFormat": "Failed",
+          "expr": "sum by (service) (rate(collector_events_failed_total[1m]))",
+          "legendFormat": "{{service}} Failed",
           "refId": "C"
         }
       ]
