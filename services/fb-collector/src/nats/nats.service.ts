@@ -24,7 +24,10 @@ export class NatsService {
     this.nc = await connect({ servers: 'nats://nats:4222' });
     this.js = this.nc.jetstream();
     this.jsm = await this.nc.jetstreamManager();
-    console.log('[NATS] Connected');
+    this.logger.log({
+      level: 'info',
+      message: 'NATS Connected',
+    });
   }
 
   async close() {
@@ -50,7 +53,10 @@ export class NatsService {
           filter_subject: subject,
           deliver_group: 'fd-collectors-group',
         });
-        console.log(`[NATS] Created durable consumer: ${durable}`);
+        this.logger.log({
+          level: 'info',
+          message: `Created durable consumer: ${durable}`,
+        });
       } else {
         throw err;
       }

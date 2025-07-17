@@ -24,7 +24,10 @@ export class NatsService {
     this.nc = await connect({ servers: 'nats://nats:4222' });
     this.js = this.nc.jetstream();
     this.jsm = await this.nc.jetstreamManager();
-    console.log('[NATS] Connected');
+    this.logger.log({
+      level: 'info',
+      message: 'NATS Connected',
+    });
   }
 
   async close() {
