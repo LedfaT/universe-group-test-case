@@ -64,8 +64,8 @@ services:
     build:
       context: .
       dockerfile: ./services/ttk-collector/Dockerfile.dev
-    ports:
-      - '3001:3001'
+    expose:
+      - '3001'
     env_file:
       - .env
     depends_on:
@@ -79,8 +79,8 @@ services:
     build:
       context: .
       dockerfile: ./services/fb-collector/Dockerfile.dev
-    ports:
-      - '3002:3002'
+    expose:
+      - '3002'
     env_file:
       - .env
     depends_on:

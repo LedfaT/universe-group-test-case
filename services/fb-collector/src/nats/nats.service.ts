@@ -44,6 +44,7 @@ export class NatsService {
           ack_policy: AckPolicy.Explicit,
           deliver_policy: DeliverPolicy.All,
           filter_subject: subject,
+          deliver_group: 'fd-collectors-group',
         });
         console.log(`[NATS] Created durable consumer: ${durable}`);
       } else {
