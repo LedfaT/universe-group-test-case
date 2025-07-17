@@ -3,7 +3,7 @@ import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
 import { TiktokEvent } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
-import { WinstonLogger } from './winston/winstom.service';
+import { WinstonLogger } from './winston/winston.service';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(

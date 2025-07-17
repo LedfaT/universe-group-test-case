@@ -8,7 +8,7 @@ import {
   AckPolicy,
   DeliverPolicy,
 } from 'nats';
-import { WinstonLogger } from 'src/winston/winstom.service';
+import { WinstonLogger } from 'src/winston/winston.service';
 import { v4 } from 'uuid';
 
 @Injectable()

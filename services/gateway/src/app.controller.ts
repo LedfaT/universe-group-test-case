@@ -14,6 +14,7 @@ export class AppController {
 
   @Post('/events')
   eventHandler(@Body() body: Event[]) {
+    console.log('Gateway received events:');
     body.forEach((event: Event) => {
       this.metricsService.gatewayAccepted.inc();
       try {

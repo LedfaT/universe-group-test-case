@@ -3,12 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NatsService } from './nats/nats.service';
 import { MetricsModule } from './metrics/metrics.module';
-import { WinstonLogger } from './winston/winstom.service';
 import { HealthModule } from './health/health.module';
+import { LoggerModule } from './winston/winston.module';
 
 @Module({
-  imports: [MetricsModule, HealthModule],
+  imports: [MetricsModule, HealthModule, LoggerModule],
   controllers: [AppController],
-  providers: [AppService, NatsService, WinstonLogger],
+  providers: [AppService, NatsService],
 })
 export class AppModule {}

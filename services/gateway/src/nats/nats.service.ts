@@ -33,7 +33,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         retention: RetentionPolicy.Workqueue,
         storage: StorageType.File,
         max_msgs: Number.MAX_SAFE_INTEGER,
-        max_bytes: 10737418240,
+        max_bytes: 2 * 1024 * 1024 * 1024,
       });
       this.logger.log({
         level: 'info',
