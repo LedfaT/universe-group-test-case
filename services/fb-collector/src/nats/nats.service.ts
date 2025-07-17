@@ -36,6 +36,9 @@ export class NatsService {
     }
   }
 
+  isConnected(): boolean {
+    return this.nc?.isClosed() === false;
+  }
   async subscribe(
     stream: string,
     durable: string,

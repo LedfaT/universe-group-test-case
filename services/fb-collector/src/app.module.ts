@@ -5,9 +5,10 @@ import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
 import { MetricsModule } from './metrics/metrics.module';
 import { WinstonLogger } from './winston/winstom.service';
+import { HealthModule } from './health/health.module';
 
 @Module({
-  imports: [MetricsModule],
+  imports: [MetricsModule, HealthModule],
   controllers: [AppController],
   providers: [AppService, NatsService, PrismaService, WinstonLogger],
 })
