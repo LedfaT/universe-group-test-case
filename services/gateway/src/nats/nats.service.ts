@@ -45,14 +45,19 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
           level: 'info',
           message: 'JetStream stream EVENTS already exists, skipping creation',
         });
-      } else {
-        this.logger.error({
-          level: 'error',
-          message: `Error creating JetStream stream EVENTS: ${err.message}`,
-        });
-        throw err;
+        return;
       }
+
+      this.logger.error({
+        level: 'error',
+        message: `Error creating JetStream stream EVENTS: ${err.message}`,
+      });
+      throw err;
     }
+  }
+
+  isConnected(): boolean {
+    return this.nc?.isClosed() === false;
   }
 
   async onModuleDestroy() {
