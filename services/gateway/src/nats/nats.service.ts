@@ -6,19 +6,24 @@ import {
   StorageType,
   JetStreamManager,
   RetentionPolicy,
+  JetStreamClient,
   headers,
 } from 'nats';
-import { v4 as uuid } from 'uuid';
+import { WinstonLogger } from 'src/winston/winstom.service';
 import { Event } from 'types/eventTypes';
 
 @Injectable()
 export class NatsService implements OnModuleInit, OnModuleDestroy {
   private nc: NatsConnection;
   private jsm: JetStreamManager;
+  private js: JetStreamClient;
   private parser = StringCodec();
+
+  constructor(private readonly logger: WinstonLogger) {}
 
   async onModuleInit() {
     this.nc = await connect({ servers: 'nats://nats:4222' });
+    this.js = this.nc.jetstream();
     this.jsm = await this.nc.jetstreamManager();
 
     try {
@@ -30,12 +35,22 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         max_msgs: Number.MAX_SAFE_INTEGER,
         max_bytes: 10737418240,
       });
-      console.log('JetStream stream EVENTS created');
+      this.logger.log({
+        level: 'info',
+        message: 'JetStream stream EVENTS created successfully',
+      });
     } catch (err: any) {
       if (err.message.includes('stream name already in use')) {
-        console.log('Stream EVENTS already exists, skipping creation');
+        this.logger.log({
+          level: 'info',
+          message: 'JetStream stream EVENTS already exists, skipping creation',
+        });
       } else {
-        console.error('Error creating JetStream stream:', err);
+        this.logger.error({
+          level: 'error',
+          message: `Error creating JetStream stream EVENTS: ${err.message}`,
+        });
+        throw err;
       }
     }
   }
@@ -51,13 +66,6 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
       throw new Error('NATS connection not initialized');
     }
 
-    const correlationId = uuid();
-    const hdrs = headers();
-
-    hdrs.set('correlation-id', correlationId);
-
-    this.nc.publish(subject, this.parser.encode(JSON.stringify(message)), {
-      headers: hdrs,
-    });
+    this.js.publish(subject, this.parser.encode(JSON.stringify(message)));
   }
 }
