@@ -6,7 +6,9 @@ import {
   StorageType,
   JetStreamManager,
   RetentionPolicy,
+  headers,
 } from 'nats';
+import { v4 as uuid } from 'uuid';
 import { Event } from 'types/eventTypes';
 
 @Injectable()
@@ -48,6 +50,14 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
     if (!this.nc) {
       throw new Error('NATS connection not initialized');
     }
-    this.nc.publish(subject, this.parser.encode(JSON.stringify(message)));
+
+    const correlationId = uuid();
+    const hdrs = headers();
+
+    hdrs.set('correlation-id', correlationId);
+
+    this.nc.publish(subject, this.parser.encode(JSON.stringify(message)), {
+      headers: hdrs,
+    });
   }
 }

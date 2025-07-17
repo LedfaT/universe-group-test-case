@@ -1,9 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
-import { Event, TiktokEvent, TiktokUser } from 'types/eventTypes';
+import { TiktokEvent } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
-import { hostname } from 'os';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(

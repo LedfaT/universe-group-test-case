@@ -59,6 +59,12 @@ export class NatsService {
       for await (const msg of messages) {
         try {
           const decoded = this.parser.decode(msg.data);
+          const correlationId =
+            msg.headers?.get('correlation-id') ?? 'no-correlation-id';
+          console.log(
+            `[NATS] Received message with correlation ID: ${correlationId}`,
+          );
+
           await callback(decoded);
           msg.ack();
         } catch (err) {
