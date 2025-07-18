@@ -2,6 +2,7 @@
 
 ## Project Structure
 
+```plaintext
 .
 ├── config
 │   ├── nats
@@ -23,7 +24,7 @@
     ├── gateway
     ├── reporter
     └── ttk-collector
----
+```
 
 ## Project Initialization
 
