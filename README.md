@@ -50,9 +50,8 @@ To run multiple instances of the `gateway` or other services, add the `deploy` s
 ```yaml
 services:
   gateway:
-    image: your-gateway-image
     deploy:
-      replicas: 3  # Run 3 instances of gateway
+      replicas: n  # Run n instances of gateway
     ...
 ```
 
