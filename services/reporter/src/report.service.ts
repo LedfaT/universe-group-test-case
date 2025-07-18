@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { MetricsService } from './metrics/metrics.service';
+import { windowWhen } from 'rxjs';
 
 @Injectable()
 export class ReportService {
@@ -25,21 +26,62 @@ export class ReportService {
       const { from, to, source, funnelStage, eventType } = filters;
 
       const timestamp = {
-        ...(from && { gte: new Date(from) }),
-        ...(to && { lte: new Date(to) }),
+        ...(from && { gte: new Date(from).toISOString() }),
+        ...(to && { lte: new Date(to).toISOString() }),
       };
 
-      return await this.prisma.event.findMany({
-        where: {
-          timestamp,
-          source: source ?? undefined,
-          funnelStage: funnelStage ?? undefined,
-          eventType: eventType ?? undefined,
-        },
-        orderBy: {
-          timestamp: 'desc',
-        },
-      });
+      const where: string[] = [];
+
+      if (source) {
+        where.push(`"source" = '${source}'::"Source"`);
+      }
+
+      if (from) {
+        where.push(`timestamp >= '${timestamp.gte}'`);
+      }
+
+      if (to) {
+        where.push(`timestamp <= '${timestamp.lte}'`);
+      }
+
+      if (funnelStage) {
+        where.push(`"funnelStage" = '${funnelStage}'::"FunnelStage"`);
+      }
+
+      if (eventType) {
+        where.push(`"eventType" = '${eventType}'`);
+      }
+
+      const whereQuery: string = where.length
+        ? `WHERE ${where.join(' AND ')}`
+        : '';
+
+      return await this.prisma.$queryRawUnsafe(`
+      SELECT json_build_object(
+        'total', (SELECT COUNT(*) 
+            FROM "Event" 
+            ${whereQuery}
+            ),
+        'byEventType', (
+          SELECT json_object_agg("eventType", count)
+          FROM (
+            SELECT "eventTyeventTypepe", COUNT(*) AS count
+            FROM "Event"
+            ${whereQuery}
+            GROUP BY "eventType"
+          ) AS event_counts
+        ),
+        'byFunnelStage', (
+          SELECT json_object_agg("funnelStage", count)
+          FROM (
+            SELECT "funnelStage", COUNT(*) AS count
+            FROM "Event"
+            ${whereQuery}
+            GROUP BY "funnelStage"
+          ) AS funnel_counts
+        )
+      ) AS report;
+      `);
     } finally {
       end();
     }
