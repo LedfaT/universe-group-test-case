@@ -1,9 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { NatsService } from './nats/nats.service';
 import { PrismaService } from './prisma/prisma.service';
-import { Event, FacebookEvent } from 'types/eventTypes';
+import { FacebookEvent } from 'types/eventTypes';
 import { MetricsService } from './metrics/metrics.service';
 import { WinstonLogger } from './winston/winstom.service';
+import { EventSchema } from 'validation/eventSchema';
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(
@@ -25,6 +26,18 @@ export class AppService implements OnModuleInit {
 
         try {
           const eventData: FacebookEvent = JSON.parse(msg);
+
+          const parsed = EventSchema.safeParse(eventData);
+          if (!parsed.success) {
+            this.metricsService.collectorEventsFailed.inc({ service: 'fb' });
+            this.logger.error({
+              level: 'error',
+              correlationId: correlation,
+              message: `Invalid event data received for Tiktok event: ${eventData.eventId}`,
+              error: parsed.error,
+            });
+            return;
+          }
 
           const { user, engagement } = eventData.data;
 

@@ -26,13 +26,10 @@ services:
   postgres:
     image: postgres:10.21
     container_name: postgres
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_PASSWORD: 'root'
-      POSTGRES_DB: universe-group
-      POSTGRES_USER: dev
-      POSTGRES_PORT: 5432
+    expose:
+      - '5432'
+    env_file:
+      - .env
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -43,8 +40,8 @@ services:
     command: npx prisma migrate deploy
     depends_on:
       - postgres
-    environment:
-      - DATABASE_URL=postgresql://dev:root@postgres:5432/universe-group
+    env_file:
+      - .env
     volumes:
       - ./prisma:/app/prisma
 
@@ -69,10 +66,6 @@ services:
       - postgres
       - nats
 
-    volumes:
-      - ./services/gateway:/app
-      - ./services/gateway/node_modules:/app/node_modules
-
   ttk-collector:
     build:
       context: .
@@ -83,10 +76,6 @@ services:
       - .env
     depends_on:
       - gateway
-    volumes:
-      - ./services/ttk-collector:/app
-      - ./services/ttk-collector/node_modules:/app/node_modules
-      - ./prisma:/app/prisma
 
   fb-collector:
     build:
@@ -98,25 +87,17 @@ services:
       - .env
     depends_on:
       - gateway
-    volumes:
-      - ./services/fb-collector:/app
-      - ./services/fb-collector/node_modules:/app/node_modules
-      - ./prisma:/app/prisma
 
   reporter:
     build:
       context: .
       dockerfile: ./services/reporter/Dockerfile.dev
-    ports:
+    expose:
       - '3003:3003'
     env_file:
       - .env
     depends_on:
       - postgres
-    volumes:
-      - ./services/reporter:/app
-      - ./services/reporter/node_modules:/app/node_modules
-      - ./prisma:/app/prisma
 
   prometheus:
     image: prom/prometheus:latest
@@ -132,18 +113,16 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-    ports:
-      - '9090:9090'
+    expose:
+      - '9090'
 
   grafana:
     image: grafana/grafana
     container_name: grafana
     ports:
       - '3005:3000'
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    env_file:
+      - .env
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards

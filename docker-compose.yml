@@ -1,5 +1,5 @@
 version: '3.8'
-
+# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 services:
   publisher:
     image: andriiuni/events
@@ -68,8 +68,6 @@ services:
     depends_on:
       - postgres
       - nats
-    deploy:
-      replicas: 3
 
     volumes:
       - ./services/gateway:/app
@@ -85,8 +83,7 @@ services:
       - .env
     depends_on:
       - gateway
-    deploy:
-      replicas: 3
+
     volumes:
       - ./services/ttk-collector:/app
       - ./services/ttk-collector/node_modules:/app/node_modules
@@ -102,8 +99,6 @@ services:
       - .env
     depends_on:
       - gateway
-    deploy:
-      replicas: 3
     volumes:
       - ./services/fb-collector:/app
       - ./services/fb-collector/node_modules:/app/node_modules

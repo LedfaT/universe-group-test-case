@@ -2,14 +2,26 @@ version: '3.8'
 
 services:
   publisher:
-    restart: always
     image: andriiuni/events
+    restart: always
     env_file:
       - .env
     depends_on:
       - gateway
     ports:
       - '8080:8080'
+
+  nginx:
+    restart: always
+    image: nginx:latest
+    container_name: nginx
+    expose:
+      - '80'
+    depends_on:
+      - gateway
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf
 
   postgres:
     image: postgres:10.21
@@ -37,52 +49,52 @@ services:
       - ./prisma:/app/prisma
 
   nats:
-    restart: always
     image: nats
     container_name: nats
+    restart: always
     command: -js -c /etc/nats/nats.conf
     ports:
       - '4222:4222'
     volumes:
       - ./config/nats/nats.conf:/etc/nats/nats.conf
+      - nats-data:/data
 
   gateway:
-    restart: always
     build:
       context: .
       dockerfile: ./services/gateway/Dockerfile.dev
-    ports:
-      - '3000:3000'
+    expose:
+      - '3000'
     depends_on:
       - postgres
       - nats
+
     volumes:
       - ./services/gateway:/app
       - ./services/gateway/node_modules:/app/node_modules
 
   ttk-collector:
-    restart: always
     build:
       context: .
       dockerfile: ./services/ttk-collector/Dockerfile.dev
-    ports:
-      - '3001:3001'
+    expose:
+      - '3001'
     env_file:
       - .env
     depends_on:
       - gateway
+
     volumes:
       - ./services/ttk-collector:/app
       - ./services/ttk-collector/node_modules:/app/node_modules
       - ./prisma:/app/prisma
 
   fb-collector:
-    restart: always
     build:
       context: .
       dockerfile: ./services/fb-collector/Dockerfile.dev
-    ports:
-      - '3002:3002'
+    expose:
+      - '3002'
     env_file:
       - .env
     depends_on:
@@ -93,7 +105,6 @@ services:
       - ./prisma:/app/prisma
 
   reporter:
-    restart: always
     build:
       context: .
       dockerfile: ./services/reporter/Dockerfile.dev
@@ -111,7 +122,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
-    restart: always
+    restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -126,7 +137,6 @@ services:
       - '9090:9090'
 
   grafana:
-    restart: always
     image: grafana/grafana
     container_name: grafana
     ports:
@@ -148,4 +158,6 @@ volumes:
   grafana-data:
     driver: local
   prometheus-data:
+    driver: local
+  nats-data:
     driver: local
