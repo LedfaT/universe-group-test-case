@@ -32,6 +32,11 @@ services:
       - .env
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
   db-migrator:
     build:
@@ -55,49 +60,73 @@ services:
     volumes:
       - ./config/nats/nats.conf:/etc/nats/nats.conf
       - nats-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z localhost 4222']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   gateway:
     build:
-      context: .
-      dockerfile: ./services/gateway/Dockerfile.dev
+      context: ./services/gateway
     expose:
       - '3000'
     depends_on:
       - postgres
       - nats
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://gateway:3000/healthz']
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
   ttk-collector:
     build:
-      context: .
-      dockerfile: ./services/ttk-collector/Dockerfile.dev
+      context: ./services/ttk-collector
     expose:
       - '3001'
     env_file:
       - .env
     depends_on:
+      - postgres
       - gateway
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
   fb-collector:
     build:
-      context: .
-      dockerfile: ./services/fb-collector/Dockerfile.dev
+      context: ./services/fb-collector
     expose:
       - '3002'
     env_file:
       - .env
     depends_on:
+      - postgres
       - gateway
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://fb-collector:3001/healthz']
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
   reporter:
     build:
-      context: .
-      dockerfile: ./services/reporter/Dockerfile.dev
+      context: ./services/reporter
     expose:
       - '3003:3003'
     env_file:
       - .env
     depends_on:
       - postgres
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://reporter:3003/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   prometheus:
     image: prom/prometheus:latest
