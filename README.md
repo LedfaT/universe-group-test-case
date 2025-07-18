@@ -31,8 +31,8 @@
 To initialize and start the project, run the following commands in the project root:
 
 ```bash
-chmod +x ./.initialize.sh
-./.initialize.sh
+chmod +x ./initialize.sh
+./initialize.sh
 ```
 
 ---
