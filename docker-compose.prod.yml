@@ -40,8 +40,7 @@ services:
 
   db-migrator:
     build:
-      context: .
-      dockerfile: ./services/ttk-collector/Dockerfile.dev
+      context: ./services/ttk-collector
     command: npx prisma migrate deploy
     depends_on:
       - postgres
@@ -107,7 +106,7 @@ services:
       - postgres
       - gateway
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://fb-collector:3001/healthz']
+      test: ['CMD', 'curl', '-f', 'http://fb-collector:3002/healthz']
       interval: 10s
       retries: 5
       timeout: 5s
@@ -115,7 +114,7 @@ services:
   reporter:
     build:
       context: ./services/reporter
-    expose:
+    ports:
       - '3003:3003'
     env_file:
       - .env

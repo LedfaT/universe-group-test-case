@@ -13,5 +13,6 @@ RUN npx prisma generate
 
 COPY wait-for-it.sh /app/wait-for-it.sh
 RUN chmod +x /app/wait-for-it.sh
+RUN npm run build
 
 CMD ["bash", "./wait-for-it.sh", "http://gateway:3000/healthz", "npm", "run", "start:prod"]
