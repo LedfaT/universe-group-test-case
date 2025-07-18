@@ -29,45 +29,25 @@ export class ReportService {
         ...(from && { gte: new Date(from).toISOString() }),
         ...(to && { lte: new Date(to).toISOString() }),
       };
+      const where = `
+      WHERE
+        "source" = '${source}'::"Source"
+        AND "timestamp" >= '${timestamp.gte}'
+        AND "timestamp" <= '${timestamp.lte}'
+        AND "funnelStage" = '${funnelStage}'::"FunnelStage"
+        AND "eventType" = '${eventType}'
+    `;
 
-      const where: string[] = [];
-
-      if (source) {
-        where.push(`"source" = '${source}'::"Source"`);
-      }
-
-      if (from) {
-        where.push(`timestamp >= '${timestamp.gte}'`);
-      }
-
-      if (to) {
-        where.push(`timestamp <= '${timestamp.lte}'`);
-      }
-
-      if (funnelStage) {
-        where.push(`"funnelStage" = '${funnelStage}'::"FunnelStage"`);
-      }
-
-      if (eventType) {
-        where.push(`"eventType" = '${eventType}'`);
-      }
-
-      const whereQuery: string = where.length
-        ? `WHERE ${where.join(' AND ')}`
-        : '';
-
-      return await this.prisma.$queryRawUnsafe(`
+      const query = `
       SELECT json_build_object(
-        'total', (SELECT COUNT(*) 
-            FROM "Event" 
-            ${whereQuery}
-            ),
+        'total', 
+          (SELECT COUNT(*) FROM "Event" ${where}),
         'byEventType', (
           SELECT json_object_agg("eventType", count)
           FROM (
-            SELECT "eventTyeventTypepe", COUNT(*) AS count
+            SELECT "eventType", COUNT(*) AS count
             FROM "Event"
-            ${whereQuery}
+            ${where}
             GROUP BY "eventType"
           ) AS event_counts
         ),
@@ -76,12 +56,14 @@ export class ReportService {
           FROM (
             SELECT "funnelStage", COUNT(*) AS count
             FROM "Event"
-            ${whereQuery}
+            ${where}
             GROUP BY "funnelStage"
           ) AS funnel_counts
         )
       ) AS report;
-      `);
+    `;
+
+      return await this.prisma.$queryRawUnsafe(query);
     } finally {
       end();
     }
@@ -104,8 +86,8 @@ export class ReportService {
       const { from, to, source, campaignId } = filters;
 
       const timestamp = {
-        ...(from && { gte: new Date(from) }),
-        ...(to && { lte: new Date(to) }),
+        ...(from && { gte: new Date(from).toISOString() }),
+        ...(to && { lte: new Date(to).toISOString() }),
       };
       const where: any = {
         source: source,
@@ -117,26 +99,31 @@ export class ReportService {
         where.fbEngagementBottom = { campaignId: campaignId };
       }
 
-      const events = await this.prisma.event.findMany({
-        where,
-        include: {
-          fbEngagementBottom: true,
-          ttEngagementBottom: true,
-        },
-      });
+      let sqlRow: string = ``;
+      if (source == 'tiktok') {
+        sqlRow = `
+         SELECT SUM(enB."purchaseAmount"::numeric) AS totalRevenue
+         FROM "Event" AS e
+          JOIN "TiktokEngagementBottom" AS enB ON e."ttEngagementBottomId" = enB.id
+         WHERE "source" = 'tiktok' AND "eventType" = 'purchase'
+         AND "timestamp" >= '${timestamp.gte}' AND "timestamp" <= '${timestamp.lte}'
+        `;
+      }
 
-      const totalRevenue = events.reduce((sum, ev) => {
-        let amount = 0;
-        if (ev.fbEngagementBottom?.purchaseAmount) {
-          amount += parseFloat(ev.fbEngagementBottom.purchaseAmount);
-        }
-        if (ev.ttEngagementBottom?.purchaseAmount) {
-          amount += parseFloat(ev.ttEngagementBottom.purchaseAmount);
-        }
-        return sum + amount;
-      }, 0);
+      if (source == 'facebook') {
+        sqlRow = `
+         SELECT SUM(fbB."purchaseAmount"::numeric) AS totalRevenue
+         FROM "Event" AS e
+          JOIN "FacebookEngagementBottom" AS fbB ON e."fbEngagementBottomId" = fbB.id
+          WHERE "source" = 'facebook' AND "eventType" = 'checkout.complete'
+          AND "timestamp" >= '${timestamp.gte}' AND "timestamp" <= '${timestamp.lte}'
+          ${campaignId ? `AND fbB."campaignId" = '${campaignId}'` : ''}
+        `;
+      }
 
-      return { totalRevenue };
+      const totalRevenue = await this.prisma.$queryRawUnsafe(sqlRow);
+
+      return totalRevenue;
     } finally {
       end();
     }
@@ -155,8 +142,8 @@ export class ReportService {
       const { from, to, source } = filters;
 
       const timestamp = {
-        ...(from && { gte: new Date(from) }),
-        ...(to && { lte: new Date(to) }),
+        ...(from && { gte: new Date(from).toISOString() }),
+        ...(to && { lte: new Date(to).toISOString() }),
       };
 
       if (source === 'facebook') {
