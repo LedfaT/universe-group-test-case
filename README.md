@@ -2,17 +2,27 @@
 
 ## Project Structure
 
-/
-├── .initialize.sh
+.
+├── config
+│   ├── nats
+│   └── nginx
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
 ├── docker-compose.yml
-├── config/
-├── monitoring/
-└── services/
-├── gateway/
-├── ttk-collector/
-├── fb-collector/
-└── reporter/
-
+├── initialization.sh
+├── monitoring
+│   ├── dashboards
+│   ├── datasources
+│   └── prometheus.yml
+├── prisma
+│   ├── migrations
+│   └── schema.prisma
+├── README.md
+└── services
+    ├── fb-collector
+    ├── gateway
+    ├── reporter
+    └── ttk-collector
 ---
 
 ## Project Initialization
@@ -34,7 +44,7 @@ NGINX is used to balance the load between multiple instances of the `gateway` se
 
 ## Running Multiple Instances with Docker Compose
 
-To run multiple instances of the `gateway` service, add the `deploy` section with the number of replicas in `docker-compose.yml`, for example:
+To run multiple instances of the `gateway` or other services, add the `deploy` section with the number of replicas in `docker-compose.yml`, for example:
 
 ```yaml
 services:
