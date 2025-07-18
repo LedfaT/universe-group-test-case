@@ -1,4 +1,3 @@
-// metrics/metrics.service.ts
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   Registry,

@@ -1,4 +1,3 @@
-// src/health/health.service.ts
 import { Injectable } from '@nestjs/common';
 import { NatsService } from 'src/nats/nats.service';
 

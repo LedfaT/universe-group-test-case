@@ -1,6 +1,5 @@
-// src/health/health.service.ts
 import { Injectable } from '@nestjs/common';
-import { NatsService } from '../nats/nats.service'; // Подключим твой NATS
+import { NatsService } from '../nats/nats.service';
 
 @Injectable()
 export class HealthService {

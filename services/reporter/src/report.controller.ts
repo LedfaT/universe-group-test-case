@@ -1,4 +1,3 @@
-// src/reports/reports.controller.ts
 import { Controller, Get, Query } from '@nestjs/common';
 import { ReportService } from './report.service';
 
