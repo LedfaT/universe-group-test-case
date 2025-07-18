@@ -1,5 +1,5 @@
 version: '3.8'
-
+# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 services:
   publisher:
     image: andriiuni/events
@@ -13,7 +13,7 @@ services:
 
   nginx:
     restart: always
-    image: nginx:alpine
+    image: nginx:latest
     container_name: nginx
     expose:
       - '80'
@@ -26,10 +26,13 @@ services:
   postgres:
     image: postgres:10.21
     container_name: postgres
-    expose:
-      - '5432'
-    env_file:
-      - .env
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: 'root'
+      POSTGRES_DB: universe-group
+      POSTGRES_USER: dev
+      POSTGRES_PORT: 5432
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -44,8 +47,8 @@ services:
     command: npx prisma migrate deploy
     depends_on:
       - postgres
-    env_file:
-      - .env
+    environment:
+      - DATABASE_URL=postgresql://dev:root@postgres:5432/universe-group
     volumes:
       - ./prisma:/app/prisma
 
@@ -68,14 +71,16 @@ services:
   gateway:
     build:
       context: ./services/gateway
-      dockerfile: Dockerfile
+    command: ['npm', 'run', 'start:dev']
     expose:
       - '3000'
     depends_on:
-      - postgres
       - nats
+    volumes:
+      - ./services/gateway:/app
+      - ./services/gateway/node_modules:/app/node_modules
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://gateway:3000/healthz']
+      test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
       interval: 10s
       retries: 5
       timeout: 5s
@@ -83,6 +88,15 @@ services:
   ttk-collector:
     build:
       context: ./services/ttk-collector
+    command:
+      [
+        'bash',
+        './wait-for-it.sh',
+        'http://gateway:3000/healthz',
+        'npm',
+        'run',
+        'start:dev',
+      ]
     expose:
       - '3001'
     env_file:
@@ -90,6 +104,10 @@ services:
     depends_on:
       - postgres
       - gateway
+    volumes:
+      - ./services/ttk-collector:/app
+      - ./services/ttk-collector/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
       interval: 10s
@@ -99,6 +117,15 @@ services:
   fb-collector:
     build:
       context: ./services/fb-collector
+    command:
+      [
+        'bash',
+        './wait-for-it.sh',
+        'http://gateway:3000/healthz',
+        'npm',
+        'run',
+        'start:dev',
+      ]
     expose:
       - '3002'
     env_file:
@@ -106,8 +133,12 @@ services:
     depends_on:
       - postgres
       - gateway
+    volumes:
+      - ./services/fb-collector:/app
+      - ./services/fb-collector/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://fb-collector:3002/healthz']
+      test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
       interval: 10s
       retries: 5
       timeout: 5s
@@ -115,12 +146,17 @@ services:
   reporter:
     build:
       context: ./services/reporter
+    command: ['npm', 'run', 'start:dev']
     ports:
       - '3003:3003'
     env_file:
       - .env
     depends_on:
       - postgres
+    volumes:
+      - ./services/reporter:/app
+      - ./services/reporter/node_modules:/app/node_modules
+      - ./prisma:/app/prisma
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://reporter:3003/healthz']
       interval: 10s
@@ -142,16 +178,18 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-    expose:
-      - '9090'
+    ports:
+      - '9090:9090'
 
   grafana:
     image: grafana/grafana
     container_name: grafana
     ports:
       - '3005:3000'
-    env_file:
-      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
