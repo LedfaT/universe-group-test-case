@@ -71,6 +71,6 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
 - All services are located inside the `services/` folder.
 - The root directory contains `docker-compose.yml`, and folders for configuration (`config/`) and monitoring (`monitoring/`).
-- The initialization script `.initialize.sh` is located in the project root.
+- The initialization script `initialize.sh` is located in the project root.
 
 ---
