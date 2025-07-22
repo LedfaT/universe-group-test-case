@@ -2,11 +2,11 @@ FROM node:20
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY services/gateway/package*.json ./
 
 RUN npm install 
 
-COPY . .
+COPY services/gateway .
 
 RUN npm run build
 

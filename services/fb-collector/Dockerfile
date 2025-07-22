@@ -2,12 +2,12 @@ FROM node:20
 
 WORKDIR /app
 
-COPY ./package*.json ./
-COPY ./prisma ./
+COPY services/fb-collector/package*.json ./
+COPY prisma ./
 
 RUN npm install 
 
-COPY . .
+COPY services/fb-collector .
 
 RUN npx prisma generate
 

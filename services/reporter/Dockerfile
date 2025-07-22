@@ -2,12 +2,12 @@ FROM node:20
 
 WORKDIR /app
 
-COPY ./package*.json ./
-COPY ./prisma ./
+COPY services/reporter/package*.json ./
+COPY prisma ./
 
 RUN npm install 
 
-COPY . .
+COPY services/reporter .
 
 RUN npx prisma generate
 RUN npm run build
