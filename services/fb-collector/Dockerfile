@@ -11,7 +11,6 @@ COPY services/fb-collector .
 
 RUN npx prisma generate
 
-COPY wait-for-it.sh /app/wait-for-it.sh
 RUN chmod +x /app/wait-for-it.sh
 RUN npm run build
 

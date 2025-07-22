@@ -3,7 +3,7 @@ FROM node:20
 WORKDIR /app
 
 COPY services/reporter/package*.json ./
-COPY prisma ./
+COPY prisma ./prisma
 
 RUN npm install 
 

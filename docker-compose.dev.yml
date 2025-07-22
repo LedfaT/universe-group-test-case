@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 # docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 services:
   publisher:
@@ -7,7 +7,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
     ports:
       - '8080:8080'
 
@@ -18,13 +19,14 @@ services:
     expose:
       - '80'
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
     volumes:
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf
 
   postgres:
-    image: postgres:10.21
+    image: postgres:16
     container_name: postgres
     ports:
       - 5432:5432
@@ -36,17 +38,19 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD', 'pg_isready', '-U', 'postgres']
-      interval: 10s
-      retries: 5
+      test: ['CMD-SHELL', 'pg_isready -U dev -d universe-group']
+      interval: 5s
       timeout: 5s
+      retries: 5
 
   db-migrator:
     build:
-      context: ./services/ttk-collector
+      context: .
+      dockerfile: ./services/ttk-collector/Dockerfile
     command: npx prisma migrate deploy
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://dev:root@postgres:5432/universe-group
     volumes:
@@ -62,15 +66,11 @@ services:
     volumes:
       - ./config/nats/nats.conf:/etc/nats/nats.conf
       - nats-data:/data
-    healthcheck:
-      test: ['CMD-SHELL', 'nc -z localhost 4222']
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   gateway:
     build:
-      context: ./services/gateway
+      context: .
+      dockerfile: ./services/gateway/Dockerfile
     command: ['npm', 'run', 'start:dev']
     expose:
       - '3000'
@@ -80,14 +80,15 @@ services:
       - ./services/gateway:/app
       - ./services/gateway/node_modules:/app/node_modules
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
+      test: ['CMD', 'curl', '-f', 'http://gateway:3000/healthz']
       interval: 10s
       retries: 5
       timeout: 5s
 
   ttk-collector:
     build:
-      context: ./services/ttk-collector
+      context: .
+      dockerfile: ./services/ttk-collector/Dockerfile
     command:
       [
         'bash',
@@ -102,8 +103,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - postgres
-      - gateway
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
     volumes:
       - ./services/ttk-collector:/app
       - ./services/ttk-collector/node_modules:/app/node_modules
@@ -116,7 +119,8 @@ services:
 
   fb-collector:
     build:
-      context: ./services/fb-collector
+      context: .
+      dockerfile: ./services/fb-collector/Dockerfile
     command:
       [
         'bash',
@@ -131,28 +135,32 @@ services:
     env_file:
       - .env
     depends_on:
-      - postgres
-      - gateway
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
     volumes:
       - ./services/fb-collector:/app
       - ./services/fb-collector/node_modules:/app/node_modules
       - ./prisma:/app/prisma
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
+      test: ['CMD', 'curl', '-f', 'http://fb-collector:3002/healthz']
       interval: 10s
       retries: 5
       timeout: 5s
 
   reporter:
     build:
-      context: ./services/reporter
+      context: .
+      dockerfile: ./services/reporter/Dockerfile
     command: ['npm', 'run', 'start:dev']
     ports:
       - '3003:3003'
     env_file:
       - .env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./services/reporter:/app
       - ./services/reporter/node_modules:/app/node_modules
