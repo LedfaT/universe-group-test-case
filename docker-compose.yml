@@ -1,5 +1,5 @@
-version: '3.9'
-# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+version: '3.8'
+
 services:
   publisher:
     image: andriiuni/events
@@ -14,7 +14,7 @@ services:
 
   nginx:
     restart: always
-    image: nginx:latest
+    image: nginx:alpine
     container_name: nginx
     expose:
       - '80'
@@ -28,13 +28,10 @@ services:
   postgres:
     image: postgres:16
     container_name: postgres
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_PASSWORD: 'root'
-      POSTGRES_DB: universe-group
-      POSTGRES_USER: dev
-      POSTGRES_PORT: 5432
+    expose:
+      - '5432'
+    env_file:
+      - .env
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -51,8 +48,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      - DATABASE_URL=postgresql://dev:root@postgres:5432/universe-group
+    env_file:
+      - .env
     volumes:
       - ./prisma:/app/prisma
 
@@ -71,14 +68,10 @@ services:
     build:
       context: .
       dockerfile: ./services/gateway/Dockerfile
-    command: ['npm', 'run', 'start:dev']
     expose:
       - '3000'
     depends_on:
       - nats
-    volumes:
-      - ./services/gateway:/app
-      - ./services/gateway/node_modules:/app/node_modules
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://gateway:3000/healthz']
       interval: 10s
@@ -89,15 +82,6 @@ services:
     build:
       context: .
       dockerfile: ./services/ttk-collector/Dockerfile
-    command:
-      [
-        'bash',
-        './wait-for-it.sh',
-        'http://gateway:3000/healthz',
-        'npm',
-        'run',
-        'start:dev',
-      ]
     expose:
       - '3001'
     env_file:
@@ -107,10 +91,6 @@ services:
         condition: service_healthy
       gateway:
         condition: service_healthy
-    volumes:
-      - ./services/ttk-collector:/app
-      - ./services/ttk-collector/node_modules:/app/node_modules
-      - ./prisma:/app/prisma
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
       interval: 10s
@@ -121,15 +101,6 @@ services:
     build:
       context: .
       dockerfile: ./services/fb-collector/Dockerfile
-    command:
-      [
-        'bash',
-        './wait-for-it.sh',
-        'http://gateway:3000/healthz',
-        'npm',
-        'run',
-        'start:dev',
-      ]
     expose:
       - '3002'
     env_file:
@@ -139,10 +110,6 @@ services:
         condition: service_healthy
       gateway:
         condition: service_healthy
-    volumes:
-      - ./services/fb-collector:/app
-      - ./services/fb-collector/node_modules:/app/node_modules
-      - ./prisma:/app/prisma
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://fb-collector:3002/healthz']
       interval: 10s
@@ -153,7 +120,6 @@ services:
     build:
       context: .
       dockerfile: ./services/reporter/Dockerfile
-    command: ['npm', 'run', 'start:dev']
     ports:
       - '3003:3003'
     env_file:
@@ -161,10 +127,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./services/reporter:/app
-      - ./services/reporter/node_modules:/app/node_modules
-      - ./prisma:/app/prisma
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://reporter:3003/healthz']
       interval: 10s
@@ -186,18 +148,16 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-    ports:
-      - '9090:9090'
+    expose:
+      - '9090'
 
   grafana:
     image: grafana/grafana
     container_name: grafana
     ports:
       - '3005:3000'
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    env_file:
+      - .env
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
