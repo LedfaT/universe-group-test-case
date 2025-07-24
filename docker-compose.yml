@@ -13,7 +13,7 @@ services:
       - '8080:8080'
 
   nginx:
-    restart: always
+    restart: unless-stopped
     image: nginx:alpine
     container_name: nginx
     expose:
@@ -56,7 +56,7 @@ services:
   nats:
     image: nats
     container_name: nats
-    restart: always
+    restart: unless-stopped
     command: -js -c /etc/nats/nats.conf
     ports:
       - '4222:4222'
@@ -68,6 +68,7 @@ services:
     build:
       context: .
       dockerfile: ./services/gateway/Dockerfile
+    restart: unless-stopped
     expose:
       - '3000'
     depends_on:
@@ -84,6 +85,7 @@ services:
     build:
       context: .
       dockerfile: ./services/ttk-collector/Dockerfile
+    restart: unless-stopped
     expose:
       - '3001'
     env_file:
@@ -105,6 +107,7 @@ services:
     build:
       context: .
       dockerfile: ./services/fb-collector/Dockerfile
+    restart: unless-stopped
     expose:
       - '3002'
     env_file:
@@ -126,6 +129,7 @@ services:
     build:
       context: .
       dockerfile: ./services/reporter/Dockerfile
+    restart: unless-stopped
     ports:
       - '3003:3003'
     env_file:
@@ -160,6 +164,7 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
+    restart: unless-stopped
     ports:
       - '3005:3000'
     env_file:
