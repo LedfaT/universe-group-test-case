@@ -36,7 +36,6 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         max_bytes: 2 * 1024 * 1024 * 1024,
         max_age: 60 *30 * 1_000_000_000,
         discard: DiscardPolicy.Old,                      
-        duplicates: 60 * 1_000_000_000,
       });
       this.logger.log({
         level: 'info',
