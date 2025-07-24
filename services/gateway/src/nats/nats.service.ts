@@ -32,7 +32,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         subjects: ['event.>'],
         retention: RetentionPolicy.Workqueue,
         storage: StorageType.File,
-        max_msgs: 1_500_000,
+        max_msgs: 5_000_000,
         max_bytes: 2 * 1024 * 1024 * 1024,
         max_age: 60 *30 * 1_000_000_000,
         discard: DiscardPolicy.Old,                      
