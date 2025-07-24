@@ -56,6 +56,8 @@ export class NatsService {
           deliver_policy: DeliverPolicy.All,
           filter_subject: subject,
           deliver_group: 'ttk-collectors-group',
+          ack_wait: 15 * 1000 * 1000 * 1000, 
+          max_ack_pending: 1000,
         });
         this.logger.log({
           level: 'info',

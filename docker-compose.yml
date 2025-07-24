@@ -72,6 +72,8 @@ services:
       - '3000'
     depends_on:
       - nats
+    deploy:
+      replicas: 3
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://gateway:3000/healthz']
       interval: 10s
@@ -91,6 +93,8 @@ services:
         condition: service_healthy
       gateway:
         condition: service_healthy
+    deploy:
+      replicas: 3
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://ttk-collector:3001/healthz']
       interval: 10s
@@ -110,6 +114,8 @@ services:
         condition: service_healthy
       gateway:
         condition: service_healthy
+    deploy:
+      replicas: 3
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://fb-collector:3002/healthz']
       interval: 10s

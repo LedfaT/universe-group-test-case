@@ -55,6 +55,8 @@ export class NatsService {
           deliver_policy: DeliverPolicy.All,
           filter_subject: subject,
           deliver_group: 'fd-collectors-group',
+          ack_wait: 30_000_000_000,
+          max_ack_pending: 1000,
         });
         this.logger.log({
           level: 'info',
