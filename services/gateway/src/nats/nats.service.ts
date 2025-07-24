@@ -7,7 +7,7 @@ import {
   JetStreamManager,
   RetentionPolicy,
   JetStreamClient,
-  headers,
+  DiscardPolicy,
 } from 'nats';
 import { WinstonLogger } from 'src/winston/winstom.service';
 import { Event } from 'types/eventTypes';
@@ -32,8 +32,11 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         subjects: ['event.>'],
         retention: RetentionPolicy.Workqueue,
         storage: StorageType.File,
-        max_msgs: Number.MAX_SAFE_INTEGER,
+        max_msgs: 1_500_000,
         max_bytes: 2 * 1024 * 1024 * 1024,
+        max_age: 3600 * 1_000_000_000,
+        discard: DiscardPolicy.Old,                      
+        duplicates: 60 * 1_000_000_000,
       });
       this.logger.log({
         level: 'info',
